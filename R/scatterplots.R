@@ -19,14 +19,17 @@ d$change[d$action < 0] <- "Decrease"
 d$change <- factor(d$change, levels = c("Increase", "No Change", "Decrease"))
 
 
-incdec_df <- summarize(group_by(d, class), incdec = sum(change == "Increase")/sum(change == "Decrease"))
+100*table(d$change)/length(d$change)
+
+incdec_df <- summarize(group_by(d, class), incdec = sum(change == "Increase")/sum(change == "Decrease"),
+                       perc_changed = 100*(1 - sum(change == "No Change")/length(change)))
 gg <- ggplot(d, aes(x = change)) +
   geom_bar(width = .5) + 
   facet_wrap(~ class) +
   labs(title = "Direction of Enacted Revenue Changes",
        x = "Direction of Change",
        y = "Count") + 
-  geom_text(data = incdec_df, aes(label = paste("Inc./Dec. =", round(incdec, 1))), 
+  geom_text(data = incdec_df, aes(label = paste("Inc./Dec. =", round(incdec, 1), "\n% Changed =", round(perc_changed, 0))), 
             x = Inf, y = Inf, hjust = 1.1, vjust = 1.4, size = 3) +  
   theme_bw()
 ggsave("doc/figs/barplot.png", gg, height = 8, width = 10)
