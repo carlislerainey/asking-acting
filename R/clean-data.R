@@ -252,9 +252,15 @@ d_tall2 <- dplyr::select(d_tall2, -starts_with("gov_"))
 d_tall <- left_join(d_tall1, d_tall2, na.rm = TRUE)
 d_tall$class <- factor(d_tall$class)
 reorder_fn <- function(x) {  mean(abs(x))  } 
-d_tall$class <- reorder(d_tall$class, d_tall$proposal, reorder_fn)
-d_tall$class <- relevel(d_tall$class, ref = "Other Taxes")
-d_tall$class <- factor(d_tall$class, levels = rev(levels(d_tall$class)))
+d_tall$class <- factor(d_tall$class, levels = c("Total Taxes", 
+                                                "Sales Taxes",
+                                                "Income Taxes",
+                                                "Corporate Taxes",
+                                                "Cigarette and Tobacco Taxes",
+                                                "Fuel Taxes",
+                                                "Alcohol Taxes",
+                                                "Fees",
+                                                "Other Taxes"))
 
 
 # ----------- #
