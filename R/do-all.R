@@ -1,17 +1,13 @@
 # set working directory to something like
 # setwd("~/Dropbox/projects/asking-acting")
 
-# parallel setup
-library(foreach)
-library(doParallel)
-cl <- makeCluster(2)
-registerDoParallel(cores = 3)
-getDoParWorkers()
+# sink output
+# sink("output.txt")
 
 # options
 subset_data <- FALSE
-ntree <- 1000
-n_values <- 20
+ntree <- 2500
+n_values <- 30
 
 # run code
 system.time ({
@@ -19,10 +15,12 @@ system.time ({
   source("R/random-forests.R")
   source("R/plot-variable-importance.R")
   source("R/plot-predictions.R")  
+  source("R/plot-pc-estimb.R")  
+  source("R/predictive-performance.R")
+  source("R/plot-example-data.R")
+  source("R/scatterplots.R")
 })
-
-# terminate cluster
-stopCluster(cl)
 
 # beep when done
 beepr::beep("facebook")
+

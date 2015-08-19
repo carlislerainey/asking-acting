@@ -55,7 +55,7 @@ colnames(budget) <- budget_names
 
 # rescale the leg_* and gov_* variables by taxes_last year
 stdz <- function(x) {
-  x_new <- (x - mean(x))/sd(x)
+  x_new <- x/sd(x)
   return(x_new)
 }
 budget <- mutate_each(budget, 
@@ -199,11 +199,10 @@ data <- mutate(group_by(data, state),
 # change in governor's partisanship
 data$change_in_gov_party <- NA
 data$change_in_gov_party[data$gov_party == data$lag_gov_party] <- "No Change"
-data$change_in_gov_party[data$gov_party == "Republican" & data$lag_gov_party == "Democrat"] <- "Change to Republican"
-data$change_in_gov_party[data$gov_party == "Democrat" & data$lag_gov_party == "Republican"] <- "Change to Democrat"
-data$change_in_gov_party <- factor(data$change_in_gov_party, levels = c("Change to Republican",
-                                                                        "No Change",
-                                                                        "Change to Democrat"))
+data$change_in_gov_party[data$gov_party == "Republican" & data$lag_gov_party == "Democrat"] <- "Change"
+data$change_in_gov_party[data$gov_party == "Democrat" & data$lag_gov_party == "Republican"] <- "Change"
+data$change_in_gov_party <- factor(data$change_in_gov_party, levels = c("Change",
+                                                                        "No Change"))
 
 
 # change in legislature composition
@@ -224,29 +223,29 @@ data <- ungroup(data)
 # heighten gov_* variables
 d_tall1 <- gather(data, class, proposal, gov_total:gov_fees)
 d_tall1$class <- as.character(d_tall1$class)
-d_tall1$class[d_tall1$class == "gov_total"] <- "Total"
-d_tall1$class[d_tall1$class == "gov_sales"] <- "Sales"
-d_tall1$class[d_tall1$class == "gov_cigarette_tobacco"] <- "Cigarette and Tobacco"
-d_tall1$class[d_tall1$class == "gov_corporate"] <- "Corporate"
+d_tall1$class[d_tall1$class == "gov_total"] <- "Total Taxes"
+d_tall1$class[d_tall1$class == "gov_sales"] <- "Sales Taxes"
+d_tall1$class[d_tall1$class == "gov_cigarette_tobacco"] <- "Cigarette and Tobacco Taxes"
+d_tall1$class[d_tall1$class == "gov_corporate"] <- "Corporate Taxes"
 d_tall1$class[d_tall1$class == "gov_fees"] <- "Fees"
-d_tall1$class[d_tall1$class == "gov_others"] <- "Others"
-d_tall1$class[d_tall1$class == "gov_alcohol"] <- "Alcohol"
-d_tall1$class[d_tall1$class == "gov_fuel"] <- "Fuel"
-d_tall1$class[d_tall1$class == "gov_income"] <- "Income"
+d_tall1$class[d_tall1$class == "gov_others"] <- "Other Taxes"
+d_tall1$class[d_tall1$class == "gov_alcohol"] <- "Alcohol Taxes"
+d_tall1$class[d_tall1$class == "gov_fuel"] <- "Fuel Taxes"
+d_tall1$class[d_tall1$class == "gov_income"] <- "Income Taxes"
 d_tall1 <- dplyr::select(d_tall1, -starts_with("leg_"))
 
 # heighten leg_* variables
 d_tall2 <- gather(data, class, action, leg_total:leg_fees)
 d_tall2$class <- as.character(d_tall2$class)
-d_tall2$class[d_tall2$class == "leg_total"] <- "Total"
-d_tall2$class[d_tall2$class == "leg_sales"] <- "Sales"
-d_tall2$class[d_tall2$class == "leg_cigarette_tobacco"] <- "Cigarette and Tobacco"
-d_tall2$class[d_tall2$class == "leg_corporate"] <- "Corporate"
+d_tall2$class[d_tall2$class == "leg_total"] <- "Total Taxes"
+d_tall2$class[d_tall2$class == "leg_sales"] <- "Sales Taxes"
+d_tall2$class[d_tall2$class == "leg_cigarette_tobacco"] <- "Cigarette and Tobacco Taxes"
+d_tall2$class[d_tall2$class == "leg_corporate"] <- "Corporate Taxes"
 d_tall2$class[d_tall2$class == "leg_fees"] <- "Fees"
-d_tall2$class[d_tall2$class == "leg_others"] <- "Others"
-d_tall2$class[d_tall2$class == "leg_alcohol"] <- "Alcohol"
-d_tall2$class[d_tall2$class == "leg_fuel"] <- "Fuel"
-d_tall2$class[d_tall2$class == "leg_income"] <- "Income"
+d_tall2$class[d_tall2$class == "leg_others"] <- "Other Taxes"
+d_tall2$class[d_tall2$class == "leg_alcohol"] <- "Alcohol Taxes"
+d_tall2$class[d_tall2$class == "leg_fuel"] <- "Fuel Taxes"
+d_tall2$class[d_tall2$class == "leg_income"] <- "Income Taxes"
 d_tall2 <- dplyr::select(d_tall2, -starts_with("gov_"))
 
 # join heightened data sets
@@ -254,7 +253,7 @@ d_tall <- left_join(d_tall1, d_tall2, na.rm = TRUE)
 d_tall$class <- factor(d_tall$class)
 reorder_fn <- function(x) {  mean(abs(x))  } 
 d_tall$class <- reorder(d_tall$class, d_tall$proposal, reorder_fn)
-d_tall$class <- relevel(d_tall$class, ref = "Others")
+d_tall$class <- relevel(d_tall$class, ref = "Other Taxes")
 d_tall$class <- factor(d_tall$class, levels = rev(levels(d_tall$class)))
 
 

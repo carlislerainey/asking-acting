@@ -12,7 +12,7 @@ data_to_join <- readRDS("data/budget.RData")[, c("state", "year", "citizen_ideol
 
 # plot for each expl variable
 for (i in 1:length(expl_vars)) {
-#for (i in 1:1) {
+#for (i in 6:6) {
   # combine tax classes into single data frame
   df <- NULL
   for (j in 1:length(out_vars)) {
@@ -62,6 +62,7 @@ for (i in 1:length(expl_vars)) {
   scale <- 3
   ggsave(filename, height = 3*scale, width = 4*scale)
 }
+
 
 
   

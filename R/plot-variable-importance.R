@@ -21,4 +21,5 @@ gg <- ggplot(vis_df, aes(x = expl_var_name, y = importance)) +
   theme_bw()
 scale <- 3
 ggsave("doc/figs/variable-importance.png", height = 3*scale, width = 4*scale)
+gg
 

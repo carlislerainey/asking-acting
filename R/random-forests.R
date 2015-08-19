@@ -4,9 +4,11 @@
 
 # load packages
 library(ggplot2)
-library(party)
+require(party)
 library(dplyr)
 library(tidyr)
+library(foreach)
+library(doParallel)
 
 # load data and listwise delete
 d <- readRDS("data/budget.RData")
@@ -26,38 +28,32 @@ out_vars <- c("leg_total", "leg_sales", "leg_income", "leg_corporate",
 out_var_names <- c("Total Taxes", "Sales Taxes", "Income Taxes", "Corporate Taxes",
                    "Cigarette and Tobacco Taxes", "Fuel Taxes", "Alcohol Taxes",
                    "Fees", "Other Taxes")
-expl_vars <- c(#"gov_party", 
+expl_vars <- c("gov_party", 
                "change_in_gov_party", 
-               #"house_dem_share", 
+               "house_dem_share", 
                "change_in_house_dem_share", 
-               #"senate_dem_share", 
+               "senate_dem_share", 
                "change_in_senate_dem_share",
                "citizen_ideology", 
-               #"change_in_citizen_ideology",
                "taxes_last_year", 
-               #"personal_income", 
-               #"population", 
+               "personal_income", 
+               "population", 
                "estimated_imbalance", 
                "percent_change_personal_income", 
                "percent_change_population")
-               #"year_of_biennium", 
-               #"ranney_10yrs")
-expl_var_names <- c(#"Governor's Party", 
+expl_var_names <- c("Governor's Party", 
                     "Change in Governor's Party",
-                    #"Democrats' Share of House", 
+                    "Democrats' Share of House", 
                     "Change in Democrats' Share of House",
-                    #"Democrats' Share of Senate", 
+                    "Democrats' Share of Senate", 
                     "Change in Democrats' Share of Senate",
                     "Citizen Ideology", 
-                    #"Change in Citizen Ideology",
                     "Taxes Last Year", 
-                    #"Personal Income", 
-                    #"Population", 
+                    "Personal Income", 
+                    "Population", 
                     "Estimated Imbalance", 
                     "Percent Change in Personal Income", 
                     "Percent Change in Population")
-                    #"Year of Biennium", 
-                    #"Ranney Index (10 Year)")
 formulas <- list()
 for (i in 1:length(out_vars)) {
   formulas[[i]] <- as.formula(paste(out_vars[i], "~", paste(expl_vars, collapse=" + ")))
@@ -83,9 +79,19 @@ plot(ct, type = "simple")
 dev.off()
 
 # random forests (in parallel)
-rfs <- foreach(i = 1:length(out_vars), .packages = "party") %dopar%
-  cforest(formulas[[i]], data = d, control = cforest_unbiased(ntree = ntree,
-  																														mtry = 5))
+cat("\nsetting up clusters for random forests... \n")
+cl <- makeCluster(2)
+registerDoParallel(cores = 3)
+cat(paste("--counting workers... ", getDoParWorkers(), "\n"))
+cat("\n building random forests... \n")
+start <- Sys.time()
+rfs <- foreach(i = 1:length(out_vars), .packages = "party") %dopar% {
+	cforest(formulas[[i]], data = d, 
+					control = cforest_unbiased(ntree = ntree, mtry = 4))
+}
+stopCluster(cl)
+end <- Sys.time()
+cat(paste("(that took", round(difftime(end, start, units = "mins"), 2), "minutes)\n"))
 names(rfs) <- out_vars
 
 
@@ -94,9 +100,21 @@ names(rfs) <- out_vars
 # ------------------- #
 
 # compute variable importance
-vis <- foreach(i = 1:length(out_vars), .packages = "party") %dopar%
-  varimp(rfs[[i]])
+cat("\nsetting up clusters for variable importance... \n")
+cl <- makeCluster(2)
+registerDoParallel(cores = 3)
+cat(paste("--counting workers... ", getDoParWorkers(), "\n"))
+cat("\ncalculating variable importance... \n")
+start <- Sys.time()
+vis <- foreach(i = 1:length(out_vars), .packages = "party") %dopar% {
+	varimp(rfs[[i]])	
+	
+}
+stopCluster(cl)
 names(vis) <- out_vars
+end <- Sys.time()
+cat(paste("(that took", round(difftime(end, start, units = "mins"), 2), "minutes)\n"))
+
 
 # pull results into a tall data frame
 vis_df <- NULL
@@ -137,35 +155,45 @@ build_prediction_df <- function(expl_var, values, data) {
 }
 
 values <- list()
-#values[[1]] <- c("Democrat", "Republican") # levels(d$gov_party)
-values[[1]] <- levels(d$change_in_gov_party)
-#values[[3]] <- seq(min(d$house_dem_share), max(d$house_dem_share), length.out = n_values)
-values[[2]] <- seq(min(d$change_in_house_dem_share), max(d$change_in_house_dem_share), length.out = n_values)
-#values[[5]] <- seq(min(d$senate_dem_share), max(d$senate_dem_share), length.out = n_values)
-values[[3]] <- seq(min(d$change_in_senate_dem_share), max(d$change_in_senate_dem_share), length.out = n_values)
-values[[4]] <- seq(min(d$citizen_ideology), max(d$citizen_ideology), length.out = n_values)
-#values[[8]] <- seq(min(d$change_in_citizen_ideology), max(d$change_in_citizen_ideology), length.out = n_values)
-values[[5]] <- seq(min(d$taxes_last_year), max(d$taxes_last_year), length.out = n_values)
-#values[[10]] <- seq(min(d$personal_income), max(d$personal_income), length.out = n_values)
-#values[[11]] <- seq(min(d$population), max(d$population), length.out = n_values)
-values[[6]] <- round(seq(min(d$estimated_imbalance), max(d$estimated_imbalance), length.out = n_values))
-values[[7]] <- seq(min(d$percent_change_personal_income), max(d$percent_change_personal_income), length.out = n_values)
-values[[8]] <- seq(min(d$percent_change_population), max(d$percent_change_population), length.out = n_values)
-#values[[15]] <- levels(d$year_of_biennium)
-#values[[16]] <- seq(min(d$ranney_10yrs), max(d$ranney_10yrs), length.out = n_values)
+values[[1]] <- c("Democrat", "Republican") # levels(d$gov_party)
+values[[2]] <- levels(d$change_in_gov_party)
+values[[3]] <- seq(min(d$house_dem_share), max(d$house_dem_share), length.out = n_values)
+values[[4]] <- seq(min(d$change_in_house_dem_share), max(d$change_in_house_dem_share), length.out = n_values)
+values[[5]] <- seq(min(d$senate_dem_share), max(d$senate_dem_share), length.out = n_values)
+values[[6]] <- seq(min(d$change_in_senate_dem_share), max(d$change_in_senate_dem_share), length.out = n_values)
+values[[7]] <- seq(min(d$citizen_ideology), max(d$citizen_ideology), length.out = n_values)
+values[[8]] <- seq(min(d$taxes_last_year), max(d$taxes_last_year), length.out = n_values)
+values[[9]] <- seq(min(d$personal_income), max(d$personal_income), length.out = n_values)
+values[[10]] <- seq(min(d$population), max(d$population), length.out = n_values)
+values[[11]] <- round(seq(min(d$estimated_imbalance), max(d$estimated_imbalance), length.out = n_values))
+values[[12]] <- seq(min(d$percent_change_personal_income), max(d$percent_change_personal_income), length.out = n_values)
+values[[13]] <- seq(min(d$percent_change_population), max(d$percent_change_population), length.out = n_values)
 names(values) <- expl_vars
 
-n
+cat("\nsetting up clusters for predictions... \n")
+cl <- makeCluster(2)
+registerDoParallel(cores = 3)
+cat(paste("--counting workers... ", getDoParWorkers(), "\n"))
+cat("\ncalculating predictions... \n")
+start <- Sys.time()
+#total_iter <- length(out_vars)*length(expl_vars)
+#iter <- 1
 pred_dfs <- foreach(i = 1:length(out_vars)) %:%
-  foreach(j = 1:length(expl_vars), .packages = "dplyr") %dopar% {
+  foreach(j = 1:length(expl_vars), .packages = c("dplyr")) %dopar% {
+    #cat(paste("working on iteration", iter, "of", total_iter, "\n"))
     X <- build_prediction_df(expl_vars[j], values[[j]], data = d)
+    X$case_id <- paste(X$state_abbr, X$year)
     pred <- predict(rfs[[i]], newdata = X)
-    pred_df <- data.frame(X$state, X$year, paste(X$state_abbr, X$year), X[, expl_vars[j]], pred = pred)
+    pred_df <- data.frame(X$state, X$year, X$case_id, X[, expl_vars[j]], pred = pred)
     names(pred_df) <- c("state", "year", "case_id", "value", "prediction")
     pred_df$expl_var <- expl_var_names[j]
     pred_df$out_var <- out_var_names[i]
+    #iter <- iter + 1
     pred_df
   }  
+stopCluster(cl)
+end <- Sys.time()
+cat(paste("(that took", round(difftime(end, start, units = "mins"), 2), "minutes)\n"))
 
 names(pred_dfs) <- out_vars
 for (i in 1:length(out_vars)) {
@@ -173,9 +201,5 @@ for (i in 1:length(out_vars)) {
 }
   
 save(expl_vars, expl_var_names, out_vars, out_var_names, pred_dfs, file = "output/predictions.RData")
-
-
-
-
 
 
