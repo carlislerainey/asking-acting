@@ -10,7 +10,6 @@
 *.toc
 *.synctex.gz
 *.bib.bak
-*.docx
 *-old/
 !.gitignore
 papers/
