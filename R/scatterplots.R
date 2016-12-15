@@ -16,7 +16,7 @@ d <- readRDS("data/budget-tall.RData")
 d$change[d$action > 0] <- "Increase"
 d$change[d$action == 0] <- "No Change"
 d$change[d$action < 0] <- "Decrease"
-d$change <- factor(d$change, levels = c("Increase", "No Change", "Decrease"))
+d$change <- factor(d$change, levels = c("Decrease", "No Change", "Increase"))
 
 
 100*table(d$change)/length(d$change)
