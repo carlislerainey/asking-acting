@@ -1,6 +1,9 @@
 # set working directory to something like
 # setwd("~/Dropbox/projects/asking-acting")
 
+# install old version of ggplot so that titles match other plots for AJPS submission
+devtools::install_github("tidyverse/ggplot2", ref = "338e82a4052c9f2298ad5b072562c184d7161fec")
+
 # load packages
 library(dplyr)
 library(tidyr)
